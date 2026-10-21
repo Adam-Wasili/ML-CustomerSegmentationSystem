@@ -1,0 +1,88 @@
+{# Dataset preview: the original file as uploaded, plus a data quality check. #}
+{% extends "base.html" %}
+{% block title %}Dataset Preview{% endblock %}
+{% block content %}
+<h1 class="h3 mb-3">Dataset Preview</h1>
+
+{# Basic information about the uploaded file #}
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3"><div class="card"><div class="card-body">
+    <div class="text-muted small">File</div><div class="fw-semibold text-break">{{ dataset.file_name }}</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card"><div class="card-body">
+    <div class="text-muted small">Type</div><div class="fw-semibold">{{ dataset.file_type|upper }}</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card"><div class="card-body">
+    <div class="text-muted small">Rows</div><div class="fw-semibold">{{ n_rows }}</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card"><div class="card-body">
+    <div class="text-muted small">Columns</div><div class="fw-semibold">{{ n_columns }}</div></div></div></div>
+</div>
+
+{# Columns that were renamed to the standard names #}
+{% if renamed %}
+  <div class="alert alert-info">Column names read as standard names:
+    {% for original, standard in renamed.items() %}<code>{{ original }}</code> &rarr; <code>{{ standard }}</code>{% if not loop.last %}, {% endif %}{% endfor %}.
+  </div>
+{% endif %}
+{# Columns the system does not use #}
+{% if ignored %}
+  <div class="alert alert-secondary">Columns not used by the system (ignored):
+    {% for c in ignored %}<code>{{ c }}</code>{% if not loop.last %}, {% endif %}{% endfor %}.
+  </div>
+{% endif %}
+
+{# Data quality table: (label, count, action) for each check #}
+{% set quality_rows = [
+  ('Missing Customer_ID', quality.missing_customer_id, 'Row removed'),
+  ('Missing Transaction_Date', quality.missing_date, 'Row removed'),
+  ('Missing Transaction_Amount', quality.missing_amount, 'Row removed'),
+  ('Invalid dates (cannot be read)', quality.invalid_date, 'Row removed'),
+  ('Ambiguous dates (day/month order unclear)', quality.ambiguous_date, 'Row removed'),
+  ('Dates in the future', quality.future_date, 'Row removed'),
+  ('Invalid amounts (not a number)', quality.invalid_amount, 'Row removed'),
+  ('Amounts zero or negative', quality.non_positive_amount, 'Row removed'),
+  ('Exact duplicate rows', quality.duplicate_rows, 'Extra copies removed'),
+] %}
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <h2 class="h5">Data quality check</h2>
+    <p class="text-muted small">This is a check of the original file. The cleaning has already been
+      applied automatically; see the Results page for the final outcome.
+      Unique Customer_ID values found: <strong>{{ quality.unique_customers }}</strong>.</p>
+    <div class="table-responsive">
+      <table class="table table-sm mb-0">
+        <thead><tr><th>Check</th><th>Rows affected</th><th>Action during cleaning</th></tr></thead>
+        <tbody>
+        {% for label, count, action in quality_rows %}
+          <tr>
+            <td>{{ label }}</td>
+            <td>{% if count %}<span class="badge text-bg-warning">{{ count }}</span>{% else %}<span class="badge text-bg-success">0</span>{% endif %}</td>
+            <td class="text-muted">{% if count %}{{ action }}{% else %}-{% endif %}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{# First 20 rows exactly as they appear in the uploaded file #}
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <h2 class="h5">First {{ preview_rows|length }} rows (as uploaded)</h2>
+    <div class="table-responsive">
+      <table class="table table-sm table-striped mb-0">
+        <thead><tr>{% for c in preview_columns %}<th>{{ c }}</th>{% endfor %}</tr></thead>
+        <tbody>
+        {% for row in preview_rows %}
+          <tr>{% for cell in row %}<td>{{ cell }}</td>{% endfor %}</tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="d-flex gap-2 flex-wrap">
+  <a class="btn btn-primary" href="{{ url_for('upload.results', dataset_id=dataset.id) }}">View cleaning results</a>
+  <a class="btn btn-outline-secondary" href="{{ url_for('upload.upload') }}">Back to uploads</a>
+</div>
+{% endblock %}

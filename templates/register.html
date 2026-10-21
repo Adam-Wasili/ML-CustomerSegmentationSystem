@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Register{% endblock %}
+{% block auth_content %}
+<div class="card auth-card shadow-sm">
+  <div class="card-body p-4">
+    <h1 class="h4 mb-4">Create an account</h1>
+    <form method="post" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="mb-3">
+        <label class="form-label" for="username">Username</label>
+        <input class="form-control" id="username" name="username" value="{{ username }}" required autofocus>
+        <div class="form-text">3-30 characters: letters, numbers, underscore.</div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label" for="password">Password</label>
+        <input class="form-control" id="password" name="password" type="password" required>
+        <div class="form-text">At least 8 characters.</div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label" for="confirm_password">Confirm password</label>
+        <input class="form-control" id="confirm_password" name="confirm_password" type="password" required>
+      </div>
+      <button class="btn btn-primary w-100" type="submit">Register</button>
+    </form>
+    <p class="small mt-3 mb-0">Already registered? <a href="{{ url_for('auth.login') }}">Log in</a></p>
+  </div>
+</div>
+{% endblock %}

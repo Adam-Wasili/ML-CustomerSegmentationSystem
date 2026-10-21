@@ -1,0 +1,139 @@
+
+/* Colours and sizes used across the whole interface */
+:root { --sidebar-width: 250px; --brand: #1f3a5f; }
+
+body { background: #dde1e6; }
+
+/* ---------- Login and register pages ---------- */
+.auth-wrapper { 
+  min-height: 100vh; 
+  display: flex; 
+  flex-direction: column;
+  align-items: center; 
+  justify-content: center; 
+  padding: 1rem; 
+}
+.auth-card { 
+  width: 100%; 
+  max-width: 420px; 
+}
+.auth-wrapper .alert { 
+  width: 100%; 
+  max-width: 420px; 
+}
+/* Inputs */
+.form-control {
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  padding: 0.65rem;
+  transition: border-color 0.3s;
+}
+
+/* Auth card container */
+.auth-card {
+  max-width: 420px;
+  margin: 2rem auto;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+/* Card shadow */
+.shadow-sm {
+  box-shadow: 0 4px 12px rgba(71, 22, 22, 0.1);
+}
+
+/* Card body padding */
+.card-body {
+  background-color: #cbeef6;
+  border-radius: 10px;
+}
+
+/* Headings */
+.card-body h1 {
+  font-weight: 600;
+  color: #080b56;
+}
+
+.card-body p.text-muted {
+  font-size: 0.9rem;
+}
+
+/* Form labels */
+.form-label {
+  font-weight: 500;
+  color: #444;
+}
+
+/* ---------- Layout for logged-in users: sidebar + content ---------- */
+.app-shell { 
+  display: flex; 
+  min-height: 100vh; 
+}
+.sidebar { 
+  width: var(--sidebar-width); 
+  background: var(--brand); 
+  color: #fff;
+  display: flex; 
+  flex-direction: column; 
+  flex-shrink: 0; 
+}
+.sidebar-brand { 
+  padding: 1.25rem 1rem; 
+  font-weight: 600; 
+  font-size: 1.1rem;
+  border-bottom: 1px solid rgba(255,255,255,.15); 
+                }
+.sidebar .nav-link { 
+  color: rgba(255,255,255,.8); 
+  padding: .65rem 1rem; }
+
+.sidebar .nav-link:hover, .sidebar .nav-link.active {
+  background: rgba(255,255,255,.12); 
+  color: #fff; }
+
+.sidebar-footer { 
+  margin-top: auto; 
+  padding: 1rem; 
+  border-top: 1px solid rgba(255,255,255,.15); }
+
+.content { 
+  flex: 1; 
+  padding: 1.5rem; 
+  min-width: 0; }   
+  /* min-width stops wide tables stretching the page */
+
+/* ---------- Small screens (phones, small tablets) ----------
+   The sidebar is hidden off-screen and slides in when the Menu button is pressed. */
+@media (max-width: 991.98px) {
+  .sidebar { 
+    position: fixed; 
+    top: 0; bottom: 0; left: 0; z-index: 1040;
+    transform: translateX(-100%); 
+    transition: transform .2s ease; }
+  .sidebar.open { transform: translateX(0); }
+}
+
+
+
+
+
+
+.form-control:focus {
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 0.2rem rgba(74,144,226,0.25);
+}
+
+/* Buttons */
+.btn-primary {
+  background-color: #4a90e2;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  transition: background-color 0.3s;
+}
+
+.btn-primary:hover {
+  background-color: #357ab8;
+}
+
+

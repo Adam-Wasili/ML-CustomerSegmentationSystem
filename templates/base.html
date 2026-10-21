@@ -1,0 +1,54 @@
+{# Main layout. Every page extends this file.
+   Logged-in users see the sidebar layout; visitors see the centred login layout. #}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  {# Makes the page scale correctly on phones #}
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Customer Segmentation{% endblock %} | MSME Analytics</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+</head>
+<body>
+{% if current_user.is_authenticated %}
+  <div class="app-shell">
+    {# Left navigation menu #}
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">Customer Segmentation</div>
+      <nav class="nav flex-column">
+        <a class="nav-link {% if request.endpoint == 'dashboard.index' %}active{% endif %}"
+           href="{{ url_for('dashboard.index') }}">Dashboard</a>
+        <a class="nav-link {% if request.blueprint == 'upload' %}active{% endif %}"
+           href="{{ url_for('upload.upload') }}">Upload Dataset</a>
+        {# RFM, Clustering, Analytics, Segments, Visualizations and Reports links are added in later steps. #}
+      </nav>
+      <div class="sidebar-footer">
+        <div class="small mb-2">Signed in as <strong>{{ current_user.username }}</strong></div>
+        {# Logout is a POST form with a CSRF token #}
+        <form method="post" action="{{ url_for('auth.logout') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-outline-light btn-sm w-100" type="submit">Logout</button>
+        </form>
+      </div>
+    </aside>
+
+    {# Page content #}
+    <main class="content">
+      {# Menu button, visible only on small screens (phones) #}
+      <button class="btn btn-dark d-lg-none mb-3" id="sidebarToggle" type="button">&#9776; Menu</button>
+      {% include "_flash.html" %}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+{% else %}
+  {# Layout for login and register pages #}
+  <main class="auth-wrapper">
+    {% include "_flash.html" %}
+    {% block auth_content %}{% endblock %}
+  </main>
+{% endif %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

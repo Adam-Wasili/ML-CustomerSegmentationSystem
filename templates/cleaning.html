@@ -1,0 +1,81 @@
+{# Cleaning results: the outcome shown automatically after every upload. #}
+{% extends "base.html" %}
+{% block title %}Cleaning Results{% endblock %}
+{% block content %}
+<h1 class="h3 mb-1">Data Cleaning Results</h1>
+<p class="text-muted">{{ dataset.file_name }}</p>
+
+{# Headline numbers #}
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3"><div class="card"><div class="card-body">
+    <div class="text-muted small">Rows in file</div><div class="h4 mb-0">{{ summary.rows_raw }}</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card"><div class="card-body">
+    <div class="text-muted small">Rows removed</div><div class="h4 mb-0 text-danger">{{ summary.rows_removed_total }}</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card"><div class="card-body">
+    <div class="text-muted small">Rows retained</div><div class="h4 mb-0 text-success">{{ summary.rows_retained }}</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card"><div class="card-body">
+    <div class="text-muted small">Unique customers</div><div class="h4 mb-0">{{ summary.customers }}</div></div></div></div>
+  <div class="col-6 col-lg-4"><div class="card"><div class="card-body">
+    <div class="text-muted small">Total transaction amount</div><div class="h5 mb-0">{{ '{:,.2f}'.format(summary.total_revenue) }}</div></div></div></div>
+  <div class="col-6 col-lg-4"><div class="card"><div class="card-body">
+    <div class="text-muted small">Date range</div><div class="h6 mb-0">{{ summary.date_min }} to {{ summary.date_max }}</div></div></div></div>
+</div>
+
+{# Removed rows, one line per reason (the list comes from REMOVAL_LABELS) #}
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <h2 class="h5">Rows removed, by reason</h2>
+    <p class="text-muted small">Each removed row is counted once, under the first rule it failed.</p>
+    <div class="table-responsive">
+      <table class="table table-sm mb-0">
+        <thead><tr><th>Reason</th><th>Rows</th></tr></thead>
+        <tbody>
+        {% for key, label in removal_labels %}
+          <tr><td>{{ label }}</td><td>{{ summary.removed[key] }}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{# Things that were corrected but kept #}
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <h2 class="h5">Corrections made (values kept)</h2>
+    <ul class="mb-0">
+      <li>Amounts whose format was normalised: <strong>{{ summary.amounts_normalised }}</strong></li>
+      <li>Dates not written year-first, read safely: <strong>{{ summary.dates_non_iso }}</strong>
+        {% if summary.date_convention %}(order used: {{ summary.date_convention }}){% endif %}</li>
+      <li>Columns read as standard names: <strong>{{ summary.columns_renamed|length }}</strong>
+        {# Show exactly which column was mapped, so nothing is changed silently #}
+        {% for original, standard in summary.columns_renamed.items() %}
+          <div class="small text-muted ms-3"><code>{{ original }}</code> &rarr; <code>{{ standard }}</code></div>
+        {% endfor %}
+      </li>
+      <li>Columns ignored: <strong>{{ summary.columns_ignored|length }}</strong></li>
+    </ul>
+  </div>
+</div>
+
+{# Warnings the user should read #}
+{% for message in summary.warnings %}
+  <div class="alert alert-warning">{{ message }}</div>
+{% endfor %}
+
+{# Next step. The RFM module is built in Step 3; this button will then be activated. #}
+<div class="card shadow-sm mb-3">
+  <div class="card-body d-flex flex-wrap align-items-center gap-3">
+    <div class="flex-grow-1">
+      <strong>Next step: RFM Analysis</strong>
+      <div class="text-muted small">The cleaned data is saved and ready.</div>
+    </div>
+    <button class="btn btn-primary" type="button" disabled>Continue to RFM Analysis (Step 3)</button>
+  </div>
+</div>
+
+<div class="d-flex gap-2 flex-wrap">
+  <a class="btn btn-outline-secondary" href="{{ url_for('upload.preview', dataset_id=dataset.id) }}">View original file preview</a>
+  <a class="btn btn-outline-secondary" href="{{ url_for('upload.upload') }}">Back to uploads</a>
+</div>
+{% endblock %}

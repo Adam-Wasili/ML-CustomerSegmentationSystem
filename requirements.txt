@@ -1,0 +1,9 @@
+Flask
+Flask-Login
+Flask-SQLAlchemy
+Flask-WTF
+numpy
+openpyxl
+pandas
+python-dotenv
+pytest

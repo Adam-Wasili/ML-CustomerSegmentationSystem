@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<h1 class="h3 mb-3">Dashboard</h1>
+<div class="card shadow-sm">
+  <div class="card-body">
+    <p class="mb-2">Welcome, <strong>{{ current_user.username }}</strong>.</p>
+    <p class="text-muted mb-0">
+      No dataset has been uploaded yet. The upload module comes next; once it is built,
+      this page will show your customer, transaction and revenue totals plus segment charts.
+    </p>
+  </div>
+</div>
+{% endblock %}
