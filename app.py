@@ -41,11 +41,13 @@ def create_app(config_class=Config):
     # Blueprints: each module of the system has its own group of routes
     from routes.auth import auth_bp
     from routes.dashboard import dashboard_bp
+    from routes.rfm import rfm_bp          # RFM analysis (Module 3)
     from routes.upload import upload_bp
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(upload_bp)
-    # Step 3+: rfm_bp, clustering_bp, analytics_bp will be added here
+    app.register_blueprint(rfm_bp)         # without this line every /rfm/... address gives 404
+    # Step 4+: clustering_bp, analytics_bp will be added here
 
     # Create the database tables if they do not exist yet
     with app.app_context():

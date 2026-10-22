@@ -1,0 +1,217 @@
+{# RFM Analysis page. From top to bottom: the cleaning outcome, the data period and
+   analysis date (with the Calculate button), summary numbers, score counts, the
+   results table and the next step. Nothing on this page can be downloaded. #}
+{% extends "base.html" %}
+{% block title %}RFM Analysis{% endblock %}
+{% block content %}
+
+{# A table heading that sorts the results when clicked #}
+{% macro sort_header(label, column, run, sort, direction) %}
+  {% set next_direction = 'asc' if (sort == column and direction == 'desc') else 'desc' %}
+  <a class="text-decoration-none text-reset"
+     href="{{ url_for('rfm.show_run', run_id=run.id, sort=column, dir=next_direction) }}">
+    {{ label }}{% if sort == column %} {% if direction == 'asc' %}&#9650;{% else %}&#9660;{% endif %}{% endif %}
+  </a>
+{% endmacro %}
+
+<h1 class="h3 mb-1">RFM Analysis</h1>
+<p class="text-muted">{{ dataset.file_name }}</p>
+
+{# ---------- 1. Outcome of the data cleaning ---------- #}
+{% if cleaning %}
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <h2 class="h5">Data cleaning outcome</h2>
+    <div class="row text-center g-2 mb-2">
+      <div class="col-4"><div class="text-muted small">Rows in file</div><div class="h5 mb-0">{{ cleaning.rows_raw }}</div></div>
+      <div class="col-4"><div class="text-muted small">Rows removed</div><div class="h5 mb-0 text-danger">{{ cleaning.rows_removed_total }}</div></div>
+      <div class="col-4"><div class="text-muted small">Rows retained</div><div class="h5 mb-0 text-success">{{ cleaning.rows_retained }}</div></div>
+    </div>
+    <details>
+      <summary class="small">See what was removed or corrected</summary>
+      <ul class="mt-2 mb-2">
+        {% for key, label in removal_labels %}
+          {% if cleaning.removed[key] %}<li>{{ label }}: <strong>{{ cleaning.removed[key] }}</strong></li>{% endif %}
+        {% endfor %}
+      </ul>
+      {% if cleaning.rows_removed_total == 0 %}<p class="mb-2">No rows were removed.</p>{% endif %}
+      {% for message in cleaning.warnings %}
+        <div class="alert alert-warning py-2 mb-2">{{ message }}</div>
+      {% endfor %}
+    </details>
+    <a class="small" href="{{ url_for('upload.results', dataset_id=dataset.id) }}">Full cleaning report</a>
+  </div>
+</div>
+{% endif %}
+
+{# ---------- 2. Data period, analysis date and the Calculate button ---------- #}
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <h2 class="h5">Data period and analysis date</h2>
+    {# The period comes from the transactions in the dataset, not from today's date #}
+    {% if period %}
+      <p class="mb-2">The records in this dataset run from <strong>{{ period.start }}</strong>
+        to <strong>{{ period.end }}</strong> ({{ period.days }} days).</p>
+    {% endif %}
+    <p class="text-muted small mb-2">Recency is the number of days from a customer's latest purchase to the
+      <strong>analysis date</strong>. By default the analysis date is the day after the last record in the
+      dataset{% if period %} ({{ period.default_analysis_date }}){% endif %}. The date on which you run the
+      analysis is never used, so older datasets are measured correctly.</p>
+    {% if run %}
+      <p class="mb-2">Current calculation: analysis date <strong>{{ run.reference_date }}</strong>.</p>
+    {% else %}
+      <div class="alert alert-warning py-2">The RFM analysis has not been calculated for this dataset yet.
+        Click the button below to calculate it.</div>
+    {% endif %}
+
+    {# Clicking the button sends a POST request (with CSRF token) that calculates RFM #}
+    <form method="post" action="{{ url_for('rfm.run_analysis', dataset_id=dataset.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <details class="mb-3">
+        <summary class="small">Advanced: use a different analysis date</summary>
+        <div class="mt-2">
+          <label class="form-label small mb-1" for="reference_date">Analysis date (optional)</label>
+          <input class="form-control" style="max-width: 220px;" type="date" id="reference_date"
+                 name="reference_date" {% if period %}min="{{ period.end }}"{% endif %}>
+          <div class="form-text">Leave empty to use the default. The date cannot be earlier than the last record.</div>
+        </div>
+      </details>
+      <button class="btn btn-primary" type="submit">
+        {% if run %}Recalculate{% else %}Calculate RFM Analysis{% endif %}
+      </button>
+    </form>
+
+    {# Earlier calculations of this dataset (each calculation is kept) #}
+    {% if runs and runs|length > 1 %}
+      <div class="small mt-3">Earlier calculations:
+        {% for r in runs %}
+          {% if run and r.id == run.id %}<strong>Run {{ r.id }} ({{ r.reference_date }})</strong>
+          {% else %}<a href="{{ url_for('rfm.show_run', run_id=r.id) }}">Run {{ r.id }} ({{ r.reference_date }})</a>{% endif %}{% if not loop.last %} | {% endif %}
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+{% if run %}
+
+{# ---------- 3. Summary numbers ---------- #}
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3"><div class="card"><div class="card-body">
+    <div class="text-muted small">Customers</div><div class="h4 mb-0">{{ summary.customers }}</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card"><div class="card-body">
+    <div class="text-muted small">Transactions</div><div class="h4 mb-0">{{ summary.transactions }}</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card"><div class="card-body">
+    <div class="text-muted small">Total monetary value</div><div class="h5 mb-0">{{ '{:,.2f}'.format(summary.total_monetary) }}</div></div></div></div>
+  <div class="col-6 col-lg-3"><div class="card"><div class="card-body">
+    <div class="text-muted small">Analysis date</div><div class="h5 mb-0">{{ run.reference_date }}</div></div></div></div>
+</div>
+
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <h2 class="h5">RFM summary</h2>
+    <div class="table-responsive">
+      <table class="table table-sm mb-0">
+        <thead><tr><th></th><th>Average</th><th>Median</th><th>Lowest</th><th>Highest</th></tr></thead>
+        <tbody>
+          <tr><td>Recency (days)</td><td>{{ '{:,.1f}'.format(summary.recency.mean) }}</td><td>{{ '{:,.1f}'.format(summary.recency.median) }}</td><td>{{ '{:,.0f}'.format(summary.recency.min) }}</td><td>{{ '{:,.0f}'.format(summary.recency.max) }}</td></tr>
+          <tr><td>Frequency (transactions)</td><td>{{ '{:,.1f}'.format(summary.frequency.mean) }}</td><td>{{ '{:,.1f}'.format(summary.frequency.median) }}</td><td>{{ '{:,.0f}'.format(summary.frequency.min) }}</td><td>{{ '{:,.0f}'.format(summary.frequency.max) }}</td></tr>
+          <tr><td>Monetary (total spent)</td><td>{{ '{:,.2f}'.format(summary.monetary.mean) }}</td><td>{{ '{:,.2f}'.format(summary.monetary.median) }}</td><td>{{ '{:,.2f}'.format(summary.monetary.min) }}</td><td>{{ '{:,.2f}'.format(summary.monetary.max) }}</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{# ---------- 4. How many customers got each score ---------- #}
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <h2 class="h5">Customers per score (5 = best)</h2>
+    <div class="table-responsive">
+      <table class="table table-sm mb-2">
+        <thead><tr><th>Score</th><th>Recency</th><th>Frequency</th><th>Monetary</th></tr></thead>
+        <tbody>
+        {% for score in [5, 4, 3, 2, 1] %}
+          <tr>
+            <td>{{ score }}</td>
+            <td>{{ summary.score_distribution['r'][score] }}</td>
+            <td>{{ summary.score_distribution['f'][score] }}</td>
+            <td>{{ summary.score_distribution['m'][score] }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <details>
+      <summary class="small">How are RFM values and scores calculated?</summary>
+      <ul class="small mt-2 mb-0">
+        <li><strong>Recency</strong>: days from the customer's latest transaction to the analysis date (lower is better).</li>
+        <li><strong>Frequency</strong>: the number of transactions made by the customer (all rows with the same Customer_ID).</li>
+        <li><strong>Monetary</strong>: the total amount the customer spent.</li>
+        <li><strong>Scores</strong>: customers are ranked and split into five groups, 1 to 5. For Recency the most recent customers score 5. Customers with identical values always get the same score, so the groups are not always exactly equal in size.</li>
+        <li>RFM is a way of describing customer behaviour. It is not the machine-learning step: the clustering module uses these three values as its input.</li>
+      </ul>
+    </details>
+  </div>
+</div>
+
+{# ---------- 5. Results table (25 customers per page) ---------- #}
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <h2 class="h5 mb-2">RFM table</h2>
+    <div class="table-responsive">
+      <table class="table table-sm table-striped align-middle mb-2">
+        <thead>
+          <tr>
+            <th>Customer_ID</th>
+            <th>{{ sort_header('Recency', 'recency', run, sort, direction) }}</th>
+            <th>{{ sort_header('Frequency', 'frequency', run, sort, direction) }}</th>
+            <th>{{ sort_header('Monetary', 'monetary', run, sort, direction) }}</th>
+            <th>{{ sort_header('R', 'r_score', run, sort, direction) }}</th>
+            <th>{{ sort_header('F', 'f_score', run, sort, direction) }}</th>
+            <th>{{ sort_header('M', 'm_score', run, sort, direction) }}</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for row in pagination.items %}
+          <tr>
+            <td>{{ row.customer.customer_code }}</td>
+            <td>{{ row.recency }}</td>
+            <td>{{ row.frequency }}</td>
+            <td>{{ '{:,.2f}'.format(row.monetary) }}</td>
+            <td>{{ row.r_score }}</td>
+            <td>{{ row.f_score }}</td>
+            <td>{{ row.m_score }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="d-flex justify-content-between align-items-center">
+      <span class="small text-muted">Page {{ pagination.page }} of {{ pagination.pages }} ({{ pagination.total }} customers)</span>
+      <div class="btn-group btn-group-sm">
+        {% if pagination.has_prev %}
+          <a class="btn btn-outline-secondary" href="{{ url_for('rfm.show_run', run_id=run.id, sort=sort, dir=direction, page=pagination.prev_num) }}">Previous</a>
+        {% endif %}
+        {% if pagination.has_next %}
+          <a class="btn btn-outline-secondary" href="{{ url_for('rfm.show_run', run_id=run.id, sort=sort, dir=direction, page=pagination.next_num) }}">Next</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ---------- 6. Next step (built in Step 4) ---------- #}
+<div class="card shadow-sm mb-3">
+  <div class="card-body d-flex flex-wrap align-items-center gap-3">
+    <div class="flex-grow-1">
+      <strong>Next step: ML Clustering</strong>
+      <div class="text-muted small">The RFM values are ready to be scaled and clustered with K-Means.</div>
+    </div>
+    <button class="btn btn-primary" type="button" disabled>Continue to ML Clustering (Step 4)</button>
+  </div>
+</div>
+{% endif %}
+
+<a class="btn btn-outline-secondary" href="{{ url_for('upload.upload') }}">Back to uploads</a>
+{% endblock %}

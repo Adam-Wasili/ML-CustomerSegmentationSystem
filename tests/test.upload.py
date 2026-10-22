@@ -1,4 +1,5 @@
-"""Tests for the upload routes. Upload now validates and cleans automatically."""
+"""Tests for the upload routes. Upload validates and cleans automatically;
+the RFM analysis is started later by the user."""
 import io
 import json
 
@@ -63,7 +64,7 @@ def test_upload_requires_login(app):
 
 def test_valid_csv_is_cleaned_automatically(client):
     response = upload(client, CSV_OK)
-    # The user is sent straight to the results page: no extra button needed
+    # The user is sent straight to the cleaning results page: no extra click to clean
     assert response.status_code == 302
     assert "/results" in response.headers["Location"]
     dataset = Dataset.query.one()
@@ -73,11 +74,12 @@ def test_valid_csv_is_cleaned_automatically(client):
     assert Transaction.query.count() == 5
 
 
-def test_results_page_shows_the_outcome(client):
-    response = upload(client, CSV_OK)
-    page = client.get(response.headers["Location"])
+def test_cleaning_results_page_shows_the_outcome_and_the_rfm_button(client):
+    upload(client, CSV_OK)
+    page = client.get(f"/datasets/{Dataset.query.one().id}/results")
     assert page.status_code == 200
     assert b"Rows removed" in page.data
+    assert b"Calculate RFM Analysis" in page.data
 
 
 def test_invalid_file_type_rejected(client):
@@ -91,7 +93,7 @@ def test_fake_xlsx_rejected(client):
 
 
 def test_missing_required_columns_reported_and_nothing_saved(client):
-    response = upload(client, "Customer_ID,Amount\nC1,100\n")
+    response = upload(client, "Customer_ID,Notes\nC1,hello\n")
     assert response.status_code == 400
     assert b"Transaction_Date" in response.data     # clear message for the user
     assert Dataset.query.count() == 0

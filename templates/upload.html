@@ -1,4 +1,5 @@
-{# Upload page: the file is validated and cleaned automatically after upload. #}
+{# Upload page: the file is validated and cleaned automatically after upload.
+   The RFM analysis is started afterwards by the user. #}
 {% extends "base.html" %}
 {% block title %}Upload Dataset{% endblock %}
 {% block content %}
@@ -12,7 +13,8 @@
         <h2 class="h5">Upload a transaction file</h2>
         <p class="text-muted small">CSV or Excel (.xlsx), maximum 10 MB. Customers are NOT created
           manually: the Customer_ID values already in your file are used. The file is validated and
-          cleaned automatically, and you will see what was removed or corrected.</p>
+          cleaned automatically, and you will see what was removed or corrected before you continue
+          to the RFM analysis.</p>
         <form method="post" enctype="multipart/form-data">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <div class="mb-3">
@@ -67,7 +69,8 @@
             <td>{{ d.rows_raw }}</td>
             <td>{{ d.rows_retained }}</td>
             <td class="text-end text-nowrap">
-              <a class="btn btn-sm btn-outline-primary" href="{{ url_for('upload.results', dataset_id=d.id) }}">Results</a>
+              <a class="btn btn-sm btn-outline-success" href="{{ url_for('rfm.dataset_rfm', dataset_id=d.id) }}">RFM</a>
+              <a class="btn btn-sm btn-outline-primary" href="{{ url_for('upload.results', dataset_id=d.id) }}">Cleaning</a>
               <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('upload.preview', dataset_id=d.id) }}">Preview</a>
               {# Delete is a POST form (with CSRF token) and asks for confirmation first #}
               <form method="post" action="{{ url_for('upload.delete', dataset_id=d.id) }}" class="d-inline"

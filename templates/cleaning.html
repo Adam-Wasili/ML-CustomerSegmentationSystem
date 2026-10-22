@@ -1,4 +1,5 @@
-{# Cleaning results: the outcome shown automatically after every upload. #}
+{# Cleaning results: the full report of what cleaning did to the uploaded file.
+   The RFM analysis starts only when the user clicks the button at the bottom. #}
 {% extends "base.html" %}
 {% block title %}Cleaning Results{% endblock %}
 {% block content %}
@@ -63,14 +64,24 @@
   <div class="alert alert-warning">{{ message }}</div>
 {% endfor %}
 
-{# Next step. The RFM module is built in Step 3; this button will then be activated. #}
+{# Next step: the RFM button. The analysis runs only when the user clicks it. #}
 <div class="card shadow-sm mb-3">
   <div class="card-body d-flex flex-wrap align-items-center gap-3">
     <div class="flex-grow-1">
       <strong>Next step: RFM Analysis</strong>
-      <div class="text-muted small">The cleaned data is saved and ready.</div>
+      <div class="text-muted small">The cleaned data is saved. Recency will be measured up to the day
+        after the last record in this dataset (last record: {{ summary.date_max }}), never up to today's date.</div>
     </div>
-    <button class="btn btn-primary" type="button" disabled>Continue to RFM Analysis (Step 3)</button>
+    {% if latest_run %}
+      {# RFM was already calculated: just open it #}
+      <a class="btn btn-primary" href="{{ url_for('rfm.show_run', run_id=latest_run.id) }}">View RFM Analysis</a>
+    {% else %}
+      {# Not calculated yet: clicking sends a POST request (with CSRF token) that starts the calculation #}
+      <form method="post" action="{{ url_for('rfm.run_analysis', dataset_id=dataset.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-primary" type="submit">Calculate RFM Analysis</button>
+      </form>
+    {% endif %}
   </div>
 </div>
 
