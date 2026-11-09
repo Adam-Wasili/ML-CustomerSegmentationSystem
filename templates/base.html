@@ -23,7 +23,9 @@
            href="{{ url_for('upload.upload') }}">Upload Dataset</a>
         <a class="nav-link {% if request.blueprint == 'rfm' %}active{% endif %}"
            href="{{ url_for('rfm.index') }}">RFM Analysis</a>
-        {# ML Clustering, Analytics, Segments, Visualizations and Reports links are added in later steps. #}
+        <a class="nav-link {% if request.blueprint == 'clustering' %}active{% endif %}"
+           href="{{ url_for('clustering.index') }}">ML Clustering</a>
+        {# Analytics, Segments, Visualizations and Reports links are added in later steps. #}
       </nav>
       <div class="sidebar-footer">
         <div class="small mb-2">Signed in as <strong>{{ current_user.username }}</strong></div>

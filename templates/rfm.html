@@ -1,6 +1,6 @@
-{# RFM Analysis page. From top to bottom: the cleaning outcome, the data period and
-   analysis date (with the Calculate button), summary numbers, score counts, the
-   results table and the next step. Nothing on this page can be downloaded. #}
+{# RFM Analysis page. From top to bottom: the cleaning outcome, the analysis date (with the
+   Calculate button), summary numbers, score counts, the results table and the next step.
+   Nothing on this page can be downloaded. #}
 {% extends "base.html" %}
 {% block title %}RFM Analysis{% endblock %}
 {% block content %}
@@ -44,21 +44,13 @@
 </div>
 {% endif %}
 
-{# ---------- 2. Data period, analysis date and the Calculate button ---------- #}
+{# ---------- 2. Analysis date and the Calculate button ---------- #}
 <div class="card shadow-sm mb-3">
   <div class="card-body">
-    <h2 class="h5">Data period and analysis date</h2>
-    {# The period comes from the transactions in the dataset, not from today's date #}
-    {% if period %}
-      <p class="mb-2">The records in this dataset run from <strong>{{ period.start }}</strong>
-        to <strong>{{ period.end }}</strong> ({{ period.days }} days).</p>
-    {% endif %}
-    <p class="text-muted small mb-2">Recency is the number of days from a customer's latest purchase to the
-      <strong>analysis date</strong>. By default the analysis date is the day after the last record in the
-      dataset{% if period %} ({{ period.default_analysis_date }}){% endif %}. The date on which you run the
-      analysis is never used, so older datasets are measured correctly.</p>
+    <h2 class="h5">Analysis date</h2>
     {% if run %}
-      <p class="mb-2">Current calculation: analysis date <strong>{{ run.reference_date }}</strong>.</p>
+      <p class="mb-2">Recency is measured up to <strong>{{ run.reference_date }}</strong>,
+        the day after the last record in this dataset.</p>
     {% else %}
       <div class="alert alert-warning py-2">The RFM analysis has not been calculated for this dataset yet.
         Click the button below to calculate it.</div>
@@ -201,14 +193,14 @@
   </div>
 </div>
 
-{# ---------- 6. Next step (built in Step 4) ---------- #}
+{# ---------- 6. Next step: ML Clustering ---------- #}
 <div class="card shadow-sm mb-3">
   <div class="card-body d-flex flex-wrap align-items-center gap-3">
     <div class="flex-grow-1">
       <strong>Next step: ML Clustering</strong>
       <div class="text-muted small">The RFM values are ready to be scaled and clustered with K-Means.</div>
     </div>
-    <button class="btn btn-primary" type="button" disabled>Continue to ML Clustering (Step 4)</button>
+    <a class="btn btn-primary" href="{{ url_for('clustering.show_run', run_id=run.id) }}">Continue to ML Clustering</a>
   </div>
 </div>
 {% endif %}

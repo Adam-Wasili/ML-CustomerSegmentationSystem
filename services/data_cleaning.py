@@ -386,8 +386,21 @@ class DataProcessor:
         return numeric, normalised
 
     def _tidy_text_columns(self, df):
-        """Limit text lengths and turn empty optional values into None (NULL in the database)."""
-        df["Customer_ID"] = df["Customer_ID"].str.slice(0, 100)
+        """Limit text lengths, tidy Customer_ID values and turn empty optional values into None."""
+        ids = df["Customer_ID"].str.slice(0, 100)
+
+        # IDs such as 1034.0 appear when a spreadsheet or export treated the ID as a decimal
+        # number. They are read as 1034 so that the same customer is not split into two.
+        decimal_style = ids.str.fullmatch(r"\d+\.0+")
+        if decimal_style.any():
+            ids = ids.where(~decimal_style, ids.str.replace(r"\.0+$", "", regex=True))
+            self.summary["warnings"].append(
+                f"{int(decimal_style.sum())} Customer_ID value(s) such as 1034.0 were read as whole "
+                "numbers (1034) so that the same customer is not counted twice."
+            )
+        df["Customer_ID"] = ids
+
+        # Optional text columns: cut long values, and store empty ones as NULL
         for column in OPTIONAL_COLUMNS:
             values = df[column].str.slice(0, MAX_TEXT_LENGTH)
             missing = self._missing(values)

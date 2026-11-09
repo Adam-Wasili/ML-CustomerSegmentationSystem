@@ -221,9 +221,12 @@ def results(dataset_id):
     dataset = _get_owned_dataset(dataset_id)
     if not dataset.cleaning_summary:
         abort(404)
+    # If RFM was already calculated, the page offers "View" instead of "Calculate"
+    latest_run = (AnalysisRun.query.filter_by(dataset_id=dataset.id)
+                  .order_by(AnalysisRun.id.desc()).first())
     return render_template("cleaning.html", dataset=dataset,
                            summary=json.loads(dataset.cleaning_summary),
-                           removal_labels=REMOVAL_LABELS)
+                           removal_labels=REMOVAL_LABELS, latest_run=latest_run)
 
 
 @upload_bp.route("/<int:dataset_id>/delete", methods=["POST"])

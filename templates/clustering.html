@@ -1,0 +1,150 @@
+{# ML Clustering page: (1) how the RFM values are prepared, (2) choosing the number of
+   clusters,(3) the saved result. Nothing on this page can be downloaded. #}
+{% extends "base.html" %}
+{% block title %}ML Clustering{% endblock %}
+{% block content %}
+<h1 class="h3 mb-1">ML Clustering</h1>
+<p class="text-muted">{{ run.dataset.file_name }} &middot; analysis date {{ run.reference_date }}</p>
+
+{# ---------- 1. How the RFM values are prepared ---------- #}
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <h2 class="h5">1. Preparing the RFM values</h2>
+    <p class="small mb-2">K-Means groups customers by the distance between them. Before clustering, the
+      system (a) applies a logarithm to Frequency and Monetary, because a few very large values would
+      otherwise stretch these two measures, and (b) standardizes Recency, Frequency and Monetary to the
+      same scale (average 0, spread 1).</p>
+    <p class="small text-muted mb-0"><strong>Why scaling is necessary:</strong> Monetary is in thousands,
+      while Recency is in days and Frequency is a small count. Without scaling, Monetary would decide the
+      groups almost alone and the other two measures would hardly matter.</p>
+  </div>
+</div>
+
+{% if error %}
+  <div class="alert alert-warning">{{ error }}</div>
+{% else %}
+
+{# ---------- 2. Choosing the number of clusters ---------- #}
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <h2 class="h5">2. Choosing the number of clusters</h2>
+    <p class="small mb-2">The system tried each number of clusters (k). <strong>Inertia</strong> shows how
+      tightly customers sit around their cluster centres: the &ldquo;elbow&rdquo; is where adding clusters
+      stops helping much. The <strong>silhouette score</strong> (-1 to 1) shows how clearly the clusters are
+      separated: higher is better.</p>
+    <p class="mb-3"><strong>Recommended number of clusters: {{ recommended }}</strong>
+      <span class="text-muted small">(highest silhouette score)</span></p>
+
+    <div class="row g-3 mb-3">
+      <div class="col-md-6"><canvas id="elbowChart" height="200"></canvas></div>
+      <div class="col-md-6"><canvas id="silhouetteChart" height="200"></canvas></div>
+    </div>
+
+    <div class="table-responsive mb-3">
+      <table class="table table-sm mb-0">
+        <thead><tr><th>k</th><th>Inertia</th><th>Silhouette score</th><th></th></tr></thead>
+        <tbody>
+        {% for row in evaluation %}
+          <tr {% if row.k == recommended %}class="table-success"{% endif %}>
+            <td>{{ row.k }}</td>
+            <td>{{ '{:,.1f}'.format(row.inertia) }}</td>
+            <td>{% if row.silhouette is not none %}{{ '{:.3f}'.format(row.silhouette) }}{% else %}-{% endif %}</td>
+            <td>{% if row.k == recommended %}<span class="badge text-bg-success">Recommended</span>{% endif %}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {# The user may accept the recommendation or choose another k #}
+    <form method="post" action="{{ url_for('clustering.cluster', run_id=run.id) }}"
+          class="row g-2 align-items-end">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="col-auto">
+        <label class="form-label small mb-1" for="n_clusters">Number of clusters</label>
+        <select class="form-select" id="n_clusters" name="n_clusters">
+          {% for row in evaluation %}
+            <option value="{{ row.k }}" {% if row.k == selected_k %}selected{% endif %}>{{ row.k }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-auto">
+        <button class="btn btn-primary" type="submit">{% if results %}Run K-Means again{% else %}Run K-Means{% endif %}</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{# Charts (Chart.js). If the library cannot be loaded, the table above still shows the numbers. #}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.js"></script>
+<script>
+  var evaluation = {{ evaluation|tojson }};
+  function drawLine(canvasId, label, key, color) {
+    if (!window.Chart) { return; }
+    new Chart(document.getElementById(canvasId), {
+      type: "line",
+      data: {
+        labels: evaluation.map(function (row) { return row.k; }),
+        datasets: [{ label: label, data: evaluation.map(function (row) { return row[key]; }),
+                     borderColor: color, backgroundColor: color, tension: 0.2 }]
+      },
+      options: {
+        plugins: { title: { display: true, text: label } },
+        scales: { x: { title: { display: true, text: "Number of clusters (k)" } } }
+      }
+    });
+  }
+  drawLine("elbowChart", "Elbow method (inertia)", "inertia", "#1f3a5f");
+  drawLine("silhouetteChart", "Silhouette score", "silhouette", "#198754");
+</script>
+{% endif %}
+
+{# ---------- 3. The saved result ---------- #}
+{% if results %}
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <h2 class="h5">3. Result: {{ run.n_clusters }} clusters</h2>
+    <p class="small text-muted">
+      Silhouette score: {% if run.silhouette is not none %}{{ '{:.3f}'.format(run.silhouette) }}{% else %}-{% endif %}
+      &middot; Inertia: {{ '{:,.1f}'.format(run.inertia) }}.
+      Segment names are suggested from the measured averages of each cluster; they are not fixed to cluster numbers.
+      The descriptions describe past behavior and do not predict future purchases.</p>
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead>
+          <tr><th>Segment</th><th>Customers</th><th>% of customers</th>
+              <th>Avg Recency (days)</th><th>Avg Frequency</th><th>Avg Monetary</th></tr>
+        </thead>
+        <tbody>
+        {% for row in results %}
+          <tr>
+            <td style="min-width: 260px;">
+              <strong>{{ row.name }}</strong>
+              <div class="small text-muted">{{ row.description }}</div>
+            </td>
+            <td>{{ row.customers }}</td>
+            <td>{{ '{:.1f}'.format(row.percent) }}%</td>
+            <td>{{ '{:,.1f}'.format(row.avg_recency) }}</td>
+            <td>{{ '{:,.1f}'.format(row.avg_frequency) }}</td>
+            <td>{{ '{:,.2f}'.format(row.avg_monetary) }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="card shadow-sm mb-3">
+  <div class="card-body d-flex flex-wrap align-items-center gap-3">
+    <div class="flex-grow-1">
+      <strong>Next step: Behavioral Analytics</strong>
+      <div class="text-muted small">Segment profiles and business interpretation.</div>
+    </div>
+    <button class="btn btn-primary" type="button" disabled>Continue to Behavioural Analytics (Step 5)</button>
+  </div>
+</div>
+{% endif %}
+
+<a class="btn btn-outline-secondary" href="{{ url_for('rfm.show_run', run_id=run.id) }}">Back to RFM Analysis</a>
+{% endblock %}

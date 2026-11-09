@@ -3,6 +3,7 @@ import io
 from datetime import date
 
 import pytest
+from flask import g
 
 from app import create_app
 from config import TestingConfig
@@ -39,6 +40,20 @@ def sign_in(client, username):
     client.post("/register", data={"username": username, "password": "strongpass1",
                                    "confirm_password": "strongpass1"})
     client.post("/login", data={"username": username, "password": "strongpass1"})
+
+
+def sign_in_as_another_user(app, username):
+    """Return a second test client that is logged in as a DIFFERENT user.
+
+    These tests keep one app context open for the whole test, and Flask-Login
+    remembers the logged-in user inside flask.g. Without clearing it, the second
+    client would still be treated as the first user. A real server creates a
+    fresh context for every request, so this is only needed in the tests.
+    """
+    g.pop("_login_user", None)
+    other = app.test_client()
+    sign_in(other, username)
+    return other
 
 
 @pytest.fixture
@@ -122,12 +137,10 @@ def test_rfm_page_shows_cleaning_outcome_and_customers(client):
     assert b"C003" in page.data
 
 
-def test_rfm_page_shows_the_data_period_and_analysis_date(client):
+def test_rfm_page_shows_the_analysis_date(client):
     upload(client)
     page = client.get(calculate_rfm(client).headers["Location"])
-    assert b"2025-01-05" in page.data           # first record
-    assert b"2025-03-01" in page.data           # last record
-    assert b"2025-03-02" in page.data           # analysis date
+    assert b"2025-03-02" in page.data           # analysis date = last record + 1 day
 
 
 # ------------------------------------------------------ analysis date
@@ -201,8 +214,7 @@ def test_other_user_cannot_open_or_change_my_analysis(app, client):
     run_id = AnalysisRun.query.one().id
     dataset_id = Dataset.query.one().id
 
-    other = app.test_client()
-    sign_in(other, "bob")
+    other = sign_in_as_another_user(app, "bob")             # a really different user
     assert other.get(f"/rfm/run/{run_id}").status_code == 404
     assert other.get(f"/rfm/dataset/{dataset_id}").status_code == 404
     assert other.post(f"/rfm/dataset/{dataset_id}/run", data={}).status_code == 404
