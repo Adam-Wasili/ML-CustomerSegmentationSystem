@@ -14,7 +14,7 @@ from sklearn.preprocessing import StandardScaler
 
 MIN_CUSTOMERS = 10               # fewer customers cannot be grouped in a meaningful way
 MIN_K = 2                        # smallest number of clusters tried
-MAX_K = 10                       # largest number of clusters tried
+MAX_K = 6                        # largest number of clusters tried
 RANDOM_STATE = 42                # fixed, so the same data always gives the same clusters
 N_INIT = 10                      # K-Means is started 10 times and the best result is kept
 SILHOUETTE_SAMPLE_SIZE = 5000    # silhouette on huge datasets is slow, so a sample is used

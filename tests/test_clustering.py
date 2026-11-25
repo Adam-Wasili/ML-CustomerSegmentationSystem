@@ -50,7 +50,7 @@ def test_too_few_customers_is_rejected():
 def test_evaluation_covers_every_k():
     clustering = MLClustering()
     evaluation = clustering.evaluate_k(clustering.prepare_features(three_groups()))
-    assert [row["k"] for row in evaluation] == list(range(2, 11))
+    assert [row["k"] for row in evaluation] == list(range(2, 7))
     assert all(row["inertia"] > 0 for row in evaluation)
 
 
@@ -85,7 +85,7 @@ def test_invalid_number_of_clusters_is_rejected():
     with pytest.raises(MLClusteringError):
         clustering.perform_clustering(features, 1)
     with pytest.raises(MLClusteringError):
-        clustering.perform_clustering(features, 11)
+        clustering.perform_clustering(features, 7)
 
 
 def test_cluster_statistics_use_the_original_values():
@@ -111,18 +111,25 @@ def profile_of(*scores):
 
 def test_names_come_from_the_measured_scores():
     named = BehavioralAnalytics().identify_characteristics(
-        profile_of((5, 5, 5), (1, 4, 4), (1, 1, 1), (3, 1.5, 1.5), (4, 3.5, 3.5)))
+        profile_of((5, 5, 5), (1, 4, 4), (1, 1, 1), (3, 1.5, 1.5), (4, 3.5, 3.5), (2, 2, 2)))
     assert named["segment_name"].tolist() == [
-        "High-Value / Loyal Customers", "At-Risk Customers", "Inactive Customers",
-        "Occasional Customers", "Regular Customers"]
+        "High-value/Loyal customers", "Moderate Active Customers", "At-Risk Customers",
+        "Occasional customers", "Regular customers", "Inactive Customers"]
 
 
 def test_the_name_does_not_depend_on_the_cluster_number():
-    low_first = BehavioralAnalytics().identify_characteristics(profile_of((1, 1, 1), (5, 5, 5)))
-    high_first = BehavioralAnalytics().identify_characteristics(profile_of((5, 5, 5), (1, 1, 1)))
-    assert low_first["segment_name"].tolist() == ["Inactive Customers", "High-Value / Loyal Customers"]
-    assert high_first["segment_name"].tolist() == ["High-Value / Loyal Customers", "Inactive Customers"]
+    low_first = BehavioralAnalytics().identify_characteristics(profile_of((2, 2, 2), (5, 5, 5)))
+    high_first = BehavioralAnalytics().identify_characteristics(profile_of((5, 5, 5), (2, 2, 2)))
+    assert low_first["segment_name"].tolist() == ["Inactive Customers", "High-value/Loyal customers"]
+    assert high_first["segment_name"].tolist() == ["High-value/Loyal customers", "Inactive Customers"]
 
+def test_very_inactive_and_inactive_are_different_names():
+    named = BehavioralAnalytics().identify_characteristics(profile_of((1, 1, 1), (2, 2, 2)))
+    assert named["segment_name"].tolist() == ["At-Risk Customers", "Inactive Customers"]
+
+def test_two_inactive_clusters_get_different_names():
+    named = BehavioralAnalytics().identify_characteristics(profile_of((2, 2, 2), (1, 1, 1)))
+    assert named["segment_name"].tolist() == ["Inactive Customers", "At-Risk Customers"]
 
 def test_duplicate_names_are_made_unique():
     named = BehavioralAnalytics().identify_characteristics(profile_of((5, 5, 5), (5, 5, 4.8)))
