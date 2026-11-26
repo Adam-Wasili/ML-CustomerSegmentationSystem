@@ -1,0 +1,59 @@
+{# Behavioural Analytics: one profile per segment, with its share of the revenue. #}
+{% extends "base.html" %}
+{% block title %}Behavioural Analytics{% endblock %}
+{% block content %}
+<h1 class="h3 mb-1">Behavioural Analytics</h1>
+<p class="text-muted">{{ run.dataset.file_name }} &middot; {{ run.n_clusters }} segments
+  &middot; analysis date {{ run.reference_date }}</p>
+
+{# Key observations, written from the measured numbers #}
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <h2 class="h5">Key observations</h2>
+    <ul class="mb-0">
+      {% for note in observations %}<li>{{ note }}</li>{% endfor %}
+    </ul>
+  </div>
+</div>
+
+{# One row per segment #}
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <h2 class="h5">Segment profiles</h2>
+    <p class="small text-muted">These descriptions describe past customer behaviour. The system does not
+      predict future purchases.</p>
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead>
+          <tr><th>Segment</th><th>Customers</th><th>% of customers</th><th>Avg Recency (days)</th>
+              <th>Avg Frequency</th><th>Avg Monetary</th><th>Revenue share</th></tr>
+        </thead>
+        <tbody>
+        {% for segment in segments %}
+          <tr>
+            <td style="min-width: 280px;">
+              <strong>{{ segment.name }}</strong>
+              <div class="small text-muted">{{ segment.description }}</div>
+              <div class="small"><strong>Action:</strong> {{ segment.action }}</div>
+            </td>
+            <td>{{ segment.customers }}</td>
+            <td>{{ '{:.1f}'.format(segment.percent) }}%</td>
+            <td>{{ '{:,.1f}'.format(segment.avg_recency) }}</td>
+            <td>{{ '{:,.1f}'.format(segment.avg_frequency) }}</td>
+            <td>{{ '{:,.2f}'.format(segment.avg_monetary) }}</td>
+            <td>{{ '{:.1f}'.format(segment.revenue_share) }}%</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="d-flex gap-2 flex-wrap">
+  <a class="btn btn-primary" href="{{ url_for('analytics.segments_run', run_id=run.id) }}">See the customers</a>
+  <a class="btn btn-outline-primary" href="{{ url_for('analytics.visualizations_run', run_id=run.id) }}">Visualizations</a>
+  <a class="btn btn-outline-primary" href="{{ url_for('analytics.reports_run', run_id=run.id) }}">Report</a>
+  <a class="btn btn-outline-secondary" href="{{ url_for('clustering.show_run', run_id=run.id) }}">Back to ML Clustering</a>
+</div>
+{% endblock %}

@@ -1,0 +1,72 @@
+{# Customer Segments: the customers of each segment, filtered by segment. #}
+{% extends "base.html" %}
+{% block title %}Customer Segments{% endblock %}
+{% block content %}
+<h1 class="h3 mb-1">Customer Segments</h1>
+<p class="text-muted">{{ run.dataset.file_name }} &middot; {{ run.n_clusters }} segments</p>
+
+{# Filter buttons: all customers, or one segment #}
+<div class="d-flex flex-wrap gap-2 mb-3">
+  <a class="btn btn-sm {% if selected is none %}btn-primary{% else %}btn-outline-primary{% endif %}"
+     href="{{ url_for('analytics.segments_run', run_id=run.id) }}">
+    All segments ({{ segments|sum(attribute='customers') }})</a>
+  {% for segment in segments %}
+    <a class="btn btn-sm {% if selected == segment.cluster %}btn-primary{% else %}btn-outline-primary{% endif %}"
+       href="{{ url_for('analytics.segments_run', run_id=run.id, segment=segment.cluster) }}">
+      {{ segment.name }} ({{ segment.customers }})</a>
+  {% endfor %}
+</div>
+
+{# When one segment is chosen, show what it means #}
+{% if selected is not none %}
+  {% for segment in segments if segment.cluster == selected %}
+    <div class="alert alert-info">
+      {{ segment.description }}
+      <div class="mt-1"><strong>Action:</strong> {{ segment.action }}</div>
+    </div>
+  {% endfor %}
+{% endif %}
+
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-sm table-striped align-middle mb-2">
+        <thead>
+          <tr><th>Customer_ID</th><th>Segment</th><th>Recency</th><th>Frequency</th>
+              <th>Monetary</th><th>R</th><th>F</th><th>M</th></tr>
+        </thead>
+        <tbody>
+        {% for row in pagination.items %}
+          <tr>
+            <td>{{ row.customer.customer_code }}</td>
+            <td>{{ names[row.cluster_label] }}</td>
+            <td>{{ row.recency }}</td>
+            <td>{{ row.frequency }}</td>
+            <td>{{ '{:,.2f}'.format(row.monetary) }}</td>
+            <td>{{ row.r_score }}</td>
+            <td>{{ row.f_score }}</td>
+            <td>{{ row.m_score }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="d-flex justify-content-between align-items-center">
+      <span class="small text-muted">Page {{ pagination.page }} of {{ pagination.pages }}
+        ({{ pagination.total }} customers)</span>
+      <div class="btn-group btn-group-sm">
+        {% if pagination.has_prev %}
+          <a class="btn btn-outline-secondary"
+             href="{{ url_for('analytics.segments_run', run_id=run.id, segment=selected, page=pagination.prev_num) }}">Previous</a>
+        {% endif %}
+        {% if pagination.has_next %}
+          <a class="btn btn-outline-secondary"
+             href="{{ url_for('analytics.segments_run', run_id=run.id, segment=selected, page=pagination.next_num) }}">Next</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<a class="btn btn-outline-secondary" href="{{ url_for('analytics.analytics_run', run_id=run.id) }}">Back to Behavioural Analytics</a>
+{% endblock %}

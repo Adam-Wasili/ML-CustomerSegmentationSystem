@@ -35,6 +35,32 @@ INTERPRETATIONS = {
         "customers; review their value before choosing between a win-back offer and a low-cost reminder.",
 }
 
+# One simple action per segment. Kept separate so the descriptions above stay unchanged.
+SEGMENT_ACTIONS = {
+    "High-value/Loyal customers":
+        "Say thanks or give a loyalty reward so they keep buying.",
+    "Regular customers":
+        "Keep in touch so they keep buying regularly.",
+    "Occasional customers":
+        "Send a reminder or small offer to get one more purchase.",
+    "Moderate Active Customers":
+        "Find out why they stopped buying, then give them a reason to return.",
+    "Inactive Customers":
+        "Check if they are worth contacting; if yes, send a small reminder or discount.",
+    "At-Risk Customers":
+        "Check their value first, then contact them personally or give a stronger offer.",
+
+    # Old names already saved in database/app.db still get a sensible action.
+    "High-Value / Loyal Customers":
+        "Say thanks or give a loyalty reward so they keep buying.",
+    "Regular Customers":
+        "Keep in touch so they keep buying regularly.",
+    "Occasional Customers":
+        "Send a reminder or small offer to get one more purchase.",
+    "Very Inactive Customers":
+        "Check their value first, then contact them personally or give a stronger offer.",
+}
+
 
 class BehavioralAnalytics:
     """Finds the characteristics and the business meaning of each customer segment."""
@@ -110,10 +136,19 @@ class BehavioralAnalytics:
             f"({monetary_word} Monetary value). {INTERPRETATIONS[base_name]}"
         )
 
+    @staticmethod
+    def action_for(name):
+        """Find the action for a segment name, ignoring any '(Cluster N)' suffix."""
+        base_name = name.split(" (Cluster ", 1)[0]
+        return SEGMENT_ACTIONS.get(
+            base_name,
+            "Review this segment's measured RFM values before choosing an action.",
+        )
+
     # -------------------------------------------------- analysing the segments
     @staticmethod
     def analyze_behavior(segments):
-        """Add each segment's total spending and its share of all spending.
+        """Add revenue share and one simple action to each segment.
 
         segments is a list of dictionaries (name, customers, percent, avg_recency,
         avg_frequency, avg_monetary ...). The average times the number of customers gives
@@ -126,6 +161,7 @@ class BehavioralAnalytics:
             row = dict(segment)
             row["total_monetary"] = total
             row["revenue_share"] = (total / overall * 100) if overall else 0.0
+            row["action"] = BehavioralAnalytics.action_for(segment["name"])
             analysed.append(row)
         return analysed
 

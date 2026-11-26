@@ -1,0 +1,104 @@
+{# Reports: the results of the whole analysis on one page. Nothing here can be downloaded. #}
+{% extends "base.html" %}
+{% block title %}Report{% endblock %}
+{% block content %}
+<h1 class="h3 mb-1">Results Report</h1>
+<p class="text-muted">{{ dataset.file_name }} &middot; analysis date {{ run.reference_date }}</p>
+
+{# 1. The data #}
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <h2 class="h5">1. Data and cleaning</h2>
+    <p class="mb-2">The file contained <strong>{{ cleaning.rows_raw }}</strong> rows.
+      <strong>{{ cleaning.rows_removed_total }}</strong> were removed and
+      <strong>{{ cleaning.rows_retained }}</strong> were kept, covering
+      <strong>{{ cleaning.customers }}</strong> customers between {{ cleaning.date_min }}
+      and {{ cleaning.date_max }}.</p>
+    {% if cleaning.rows_removed_total %}
+      <ul class="small mb-0">
+        {% for key, label in removal_labels %}
+          {% if cleaning.removed[key] %}<li>{{ label }}: {{ cleaning.removed[key] }}</li>{% endif %}
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </div>
+</div>
+
+{# 2. RFM #}
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <h2 class="h5">2. RFM analysis</h2>
+    <p class="mb-2">Recency was measured up to {{ run.reference_date }}, the day after the last record.
+      The {{ summary.customers }} customers made {{ summary.transactions }} transactions worth
+      {{ '{:,.2f}'.format(summary.total_monetary) }} in total.</p>
+    <div class="table-responsive">
+      <table class="table table-sm mb-0">
+        <thead><tr><th></th><th>Average</th><th>Median</th><th>Lowest</th><th>Highest</th></tr></thead>
+        <tbody>
+          <tr><td>Recency (days)</td><td>{{ '{:,.1f}'.format(summary.recency.mean) }}</td><td>{{ '{:,.1f}'.format(summary.recency.median) }}</td><td>{{ '{:,.0f}'.format(summary.recency.min) }}</td><td>{{ '{:,.0f}'.format(summary.recency.max) }}</td></tr>
+          <tr><td>Frequency</td><td>{{ '{:,.1f}'.format(summary.frequency.mean) }}</td><td>{{ '{:,.1f}'.format(summary.frequency.median) }}</td><td>{{ '{:,.0f}'.format(summary.frequency.min) }}</td><td>{{ '{:,.0f}'.format(summary.frequency.max) }}</td></tr>
+          <tr><td>Monetary</td><td>{{ '{:,.2f}'.format(summary.monetary.mean) }}</td><td>{{ '{:,.2f}'.format(summary.monetary.median) }}</td><td>{{ '{:,.2f}'.format(summary.monetary.min) }}</td><td>{{ '{:,.2f}'.format(summary.monetary.max) }}</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{# 3. Clustering #}
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <h2 class="h5">3. Clustering</h2>
+    <p class="mb-0">Frequency and Monetary were log-transformed and all three RFM measures were standardised.
+      K-Means then grouped the customers into <strong>{{ run.n_clusters }}</strong> clusters
+      (silhouette score
+      {% if run.silhouette is not none %}{{ '{:.3f}'.format(run.silhouette) }}{% else %}not available{% endif %},
+      inertia {{ '{:,.1f}'.format(run.inertia) }}).</p>
+  </div>
+</div>
+
+{# 4. Segments #}
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <h2 class="h5">4. Customer segments</h2>
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead>
+          <tr><th>Segment</th><th>Customers</th><th>% of customers</th><th>Avg Recency</th>
+              <th>Avg Frequency</th><th>Avg Monetary</th><th>Revenue share</th></tr>
+        </thead>
+        <tbody>
+        {% for segment in segments %}
+          <tr>
+            <td style="min-width: 280px;"><strong>{{ segment.name }}</strong>
+              <div class="small text-muted">{{ segment.description }}</div>
+              <div class="small"><strong>Action:</strong> {{ segment.action }}</div></td>
+            <td>{{ segment.customers }}</td>
+            <td>{{ '{:.1f}'.format(segment.percent) }}%</td>
+            <td>{{ '{:,.1f}'.format(segment.avg_recency) }}</td>
+            <td>{{ '{:,.1f}'.format(segment.avg_frequency) }}</td>
+            <td>{{ '{:,.2f}'.format(segment.avg_monetary) }}</td>
+            <td>{{ '{:.1f}'.format(segment.revenue_share) }}%</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{# 5. Observations and limits #}
+<div class="card shadow-sm mb-3">
+  <div class="card-body">
+    <h2 class="h5">5. Key observations</h2>
+    <ul>{% for note in observations %}<li>{{ note }}</li>{% endfor %}</ul>
+    <p class="small text-muted mb-0">This report describes past customer behaviour. It does not predict future
+      purchases, and the segment names are suggestions based on the measured averages.</p>
+  </div>
+</div>
+
+<div class="d-flex gap-2 flex-wrap">
+  <a class="btn btn-outline-primary" href="{{ url_for('analytics.analytics_run', run_id=run.id) }}">Behavioural Analytics</a>
+  <a class="btn btn-outline-primary" href="{{ url_for('analytics.visualizations_run', run_id=run.id) }}">Visualizations</a>
+  <a class="btn btn-outline-secondary" href="{{ url_for('upload.results', dataset_id=dataset.id) }}">Full cleaning report</a>
+</div>
+{% endblock %}
